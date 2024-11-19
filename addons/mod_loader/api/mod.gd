@@ -47,6 +47,65 @@ static func install_script_extension(child_script_path: String) -> void:
 		_ModLoaderScriptExtension.apply_extension(child_script_path)
 
 
+## Adds all methods from a file as hooks. [br]
+## The file needs to extend [Object] [br]
+## The methods in the file need to have the exact same name as the vanilla method
+## they intend to hook, all mismatches will be ignored. [br]
+## See: [method add_hook]
+##
+## [codeblock]
+## ModLoaderMod.install_script_hooks(
+##     "res://tools/utilities.gd",
+##     extensions_dir_path.path_join("tools/utilities-hook.gd")
+## )
+## [/codeblock]
+static func install_script_hooks(vanilla_script_path: String, hook_script_path: String) -> void:
+	var hook_script := load(hook_script_path) as GDScript
+	var hook_script_instance := hook_script.new()
+
+	# Every script that inherits RefCounted will be cleaned up by the engine as
+	# soon as there are no more references to it. If the reference is gone
+	# the method can't be called and everything returns null.
+	# Only Object won't be removed, so we can use it here.
+	if hook_script_instance is RefCounted:
+		ModLoaderLog.fatal(
+			"Scripts holding mod hooks should always extend Object (%s)"
+			% hook_script_path, LOG_NAME
+		)
+
+	var vanilla_script := load(vanilla_script_path) as GDScript
+	var vanilla_methods := vanilla_script.get_script_method_list().map(
+		func(method: Dictionary) -> String:
+			return method.name
+	)
+
+	var methods := hook_script.get_script_method_list()
+	for hook in methods:
+		if hook.name in vanilla_methods:
+			ModLoaderMod.add_hook(Callable(hook_script_instance, hook.name), vanilla_script_path, hook.name)
+			continue
+
+		ModLoaderLog.debug(
+			'Skipped adding hook "%s" (not found in vanilla script %s)'
+			% [hook.name, vanilla_script_path], LOG_NAME
+		)
+
+		if not OS.has_feature("editor"):
+			continue
+
+		vanilla_methods.sort_custom((
+			func(a_name: String, b_name: String, target_name: String) -> bool:
+				return a_name.similarity(target_name) > b_name.similarity(target_name)
+		).bind(hook.name))
+
+		var closest_vanilla := vanilla_methods.front()
+		if closest_vanilla.similarity(hook.name) > 0.8:
+			ModLoaderLog.debug(
+				'Did you mean "%s" instead of "%s"?'
+				% [closest_vanilla, hook.name], LOG_NAME
+			)
+
+
 ## Adds a hook, a custom mod function, to a vanilla method.[br]
 ## Opposed to script extensions, hooks can be applied to scripts that use
 ## [code]class_name[/code] without issues.[br]
