@@ -347,7 +347,7 @@ static func get_return_type_string(return_data: Dictionary) -> String:
 	if return_data.has("class_name") and not str(return_data.class_name).is_empty():
 		type_base = str(return_data.class_name)
 	else:
-		type_base = type_string(return_data.type)
+		type_base = get_type_name(return_data.type)
 
 	var type_hint: String = "" if return_data.hint_string.is_empty() else ("[%s]" % return_data.hint_string)
 
@@ -369,3 +369,89 @@ static func collect_getters_and_setters(text: String, regex_getter_setter: RegEx
 		result[mat.get_string(4)] = true
 
 	return result
+
+
+# This function was taken from https://github.com/godotengine/godot/blob/7e67b496ff7e35f66b88adcbdd5b252d01739cbb/modules/gdscript/tests/scripts/utils.notest.gd#L69
+# It is used instead of type_string because type_string does not exist in Godot 4.1
+static func get_type_name(type: Variant.Type) -> String:
+	match type:
+		TYPE_NIL:
+			return "Nil" # `Nil` in core, `null` in GDScript.
+		TYPE_BOOL:
+			return "bool"
+		TYPE_INT:
+			return "int"
+		TYPE_FLOAT:
+			return "float"
+		TYPE_STRING:
+			return "String"
+		TYPE_VECTOR2:
+			return "Vector2"
+		TYPE_VECTOR2I:
+			return "Vector2i"
+		TYPE_RECT2:
+			return "Rect2"
+		TYPE_RECT2I:
+			return "Rect2i"
+		TYPE_VECTOR3:
+			return "Vector3"
+		TYPE_VECTOR3I:
+			return "Vector3i"
+		TYPE_TRANSFORM2D:
+			return "Transform2D"
+		TYPE_VECTOR4:
+			return "Vector4"
+		TYPE_VECTOR4I:
+			return "Vector4i"
+		TYPE_PLANE:
+			return "Plane"
+		TYPE_QUATERNION:
+			return "Quaternion"
+		TYPE_AABB:
+			return "AABB"
+		TYPE_BASIS:
+			return "Basis"
+		TYPE_TRANSFORM3D:
+			return "Transform3D"
+		TYPE_PROJECTION:
+			return "Projection"
+		TYPE_COLOR:
+			return "Color"
+		TYPE_STRING_NAME:
+			return "StringName"
+		TYPE_NODE_PATH:
+			return "NodePath"
+		TYPE_RID:
+			return "RID"
+		TYPE_OBJECT:
+			return "Object"
+		TYPE_CALLABLE:
+			return "Callable"
+		TYPE_SIGNAL:
+			return "Signal"
+		TYPE_DICTIONARY:
+			return "Dictionary"
+		TYPE_ARRAY:
+			return "Array"
+		TYPE_PACKED_BYTE_ARRAY:
+			return "PackedByteArray"
+		TYPE_PACKED_INT32_ARRAY:
+			return "PackedInt32Array"
+		TYPE_PACKED_INT64_ARRAY:
+			return "PackedInt64Array"
+		TYPE_PACKED_FLOAT32_ARRAY:
+			return "PackedFloat32Array"
+		TYPE_PACKED_FLOAT64_ARRAY:
+			return "PackedFloat64Array"
+		TYPE_PACKED_STRING_ARRAY:
+			return "PackedStringArray"
+		TYPE_PACKED_VECTOR2_ARRAY:
+			return "PackedVector2Array"
+		TYPE_PACKED_VECTOR3_ARRAY:
+			return "PackedVector3Array"
+		TYPE_PACKED_COLOR_ARRAY:
+			return "PackedColorArray"
+		38: # TYPE_PACKED_VECTOR4_ARRAY
+			return "PackedVector4Array"
+	push_error("Argument `type` is invalid. Use `TYPE_*` constants.")
+	return "<invalid type>"

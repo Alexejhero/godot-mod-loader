@@ -38,6 +38,3 @@ static func call_hooks(vanilla_method: Callable, args: Array, hook_hash: int) ->
 
 static func get_hook_hash(path: String, method: String) -> int:
 	return hash(path + method)
-
-
-
