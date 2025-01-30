@@ -107,25 +107,6 @@ static func get_json_as_dict_from_zip(zip_path: String, file_path: String, is_fu
 	return _get_json_string_as_dict(content)
 
 
-# Finds the global paths to all zips in provided directory
-static func get_zip_paths_in(folder_path: String) -> Array[String]:
-	var zip_paths: Array[String] = []
-
-	var files := Array(DirAccess.get_files_at(folder_path))\
-	.filter(
-		func(file_name: String):
-			return file_name.get_extension() == "zip"
-	).map(
-		func(file_name: String):
-			return ProjectSettings.globalize_path(folder_path.path_join(file_name))
-	)
-	ModLoaderLog.debug("Found %s mod ZIPs: %s" % [files.size(), str(files)], LOG_NAME)
-
-	# only .assign()ing to a typed array lets us return Array[String] instead of just Array
-	zip_paths.assign(files)
-	return zip_paths
-
-
 # Save Data
 # =============================================================================
 
@@ -194,7 +175,7 @@ static func remove_file(file_path: String) -> bool:
 
 static func file_exists(path: String, zip_path: String = "") -> bool:
 	if not zip_path.is_empty():
-		return file_exists_in_zip(path, zip_path)
+		return file_exists_in_zip(zip_path, path)
 
 	var exists := FileAccess.file_exists(path)
 
@@ -209,11 +190,26 @@ static func dir_exists(path: String) -> bool:
 	return DirAccess.dir_exists_absolute(path)
 
 
-static func file_exists_in_zip(path: String, zip_path: String = "") -> bool:
+static func file_exists_in_zip(zip_path: String, path: String) -> bool:
 	var reader := zip_reader_open(zip_path)
 	if not reader:
 		return false
 	return reader.file_exists(path.trim_prefix("res://"))
+
+
+static func get_mod_dir_name_in_zip(zip_path: String) -> String:
+	var reader := _ModLoaderFile.zip_reader_open(zip_path)
+	if not reader:
+		return ""
+
+	var file_paths := reader.get_files()
+
+	for file_path in file_paths:
+		# We asume tat the mod_main.gd is at the root of the mod dir
+		if file_path.ends_with("mod_main.gd") and file_path.split("/").size() == 3:
+			return file_path.split("/")[-2]
+
+	return ""
 
 
 static func zip_reader_open(zip_path) -> ZIPReader:
@@ -225,10 +221,14 @@ static func zip_reader_open(zip_path) -> ZIPReader:
 	return reader
 
 
-# Internal util functions
-# =============================================================================
-# These are duplicates of the functions in mod_loader_utils.gd to prevent
-# a cyclic reference error.
+static func load_manifest_file(path: String) -> Dictionary:
+	ModLoaderLog.debug("Loading mod_manifest from -> %s" % path, LOG_NAME)
+
+	if _ModLoaderPath.is_zip(path):
+		return get_json_as_dict_from_zip(path, ModData.MANIFEST)
+
+	return get_json_as_dict(path.path_join(ModData.MANIFEST))
+
 
 # This is a dummy func. It is exclusively used to show notes in the code that
 # stay visible after decompiling a PCK, as is primarily intended to assist new

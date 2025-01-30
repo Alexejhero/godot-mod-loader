@@ -14,11 +14,6 @@ extends Node
 
 const MODLOADER_VERSION := "7.0.1"
 
-# If true, a complete array of filepaths is stored for each mod. This is
-# disabled by default because the operation can be very expensive, but may
-# be useful for debugging
-const DEBUG_ENABLE_STORING_FILEPATHS := false
-
 # This is where mod ZIPs are unpacked to
 const UNPACKED_DIR := "res://mods-unpacked/"
 
@@ -29,6 +24,9 @@ const MOD_HOOK_PACK_NAME := "mod-hooks.zip"
 const REQUIRE_CMD_LINE := false
 
 const LOG_NAME := "ModLoader:Store"
+
+const URL_MOD_STRUCTURE_DOCS := "https://wiki.godotmodding.com/guides/modding/mod_structure"
+const MOD_LOADER_DEV_TOOL_URL := "https://github.com/GodotModding/godot-mod-tool"
 
 # Vars
 # =============================================================================
@@ -63,9 +61,6 @@ var mod_missing_dependencies := {}
 # Helps to decide whether a script extension should go through the _ModLoaderScriptExtension.handle_script_extensions() process
 var is_initializing := true
 
-# Used when loading mod zips to determine which mod zip corresponds to which mod directory in the UNPACKED_DIR.
-var previous_mod_dirs := []
-
 # Store all extenders paths
 var script_extensions := []
 
@@ -76,9 +71,6 @@ var scenes_to_refresh := []
 # Dictionary of callables to modify a specific scene.
 # Example property: "scene_path": [Callable, Callable]
 var scenes_to_modify := {}
-
-# True if ModLoader has displayed the warning about using zipped mods
-var has_shown_editor_zips_warning := false
 
 # Things to keep to ensure they are not garbage collected (used by `save_scene`)
 var saved_objects := []
@@ -249,6 +241,11 @@ func _update_ml_options_from_options_resource() -> void:
 		# Update from the options in the resource
 		for key in ml_options:
 			set_option(key, override_options[key])
+
+
+func _exit_tree() -> void:
+	# Save the cache to the cache file.
+	_ModLoaderCache.save_to_file()
 
 
 # Update ModLoader's options, via CLI args
